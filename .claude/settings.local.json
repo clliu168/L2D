@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(PYTHONPATH:*)",
+      "Bash(./evaluate.sh:*)",
+      "Bash(bash:*)"
+    ],
+    "deny": []
+  }
+}
