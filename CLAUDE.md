@@ -201,6 +201,132 @@ Generated_30x20  30x20      100  1323    110.3   1032   1702  92.8s
 - **Min/Max**: Minimum and maximum makespan values
 - **Time**: Total evaluation time for the dataset
 
+## Dispatching Rules Implementation
+
+### Available Dispatching Rules
+
+The codebase now includes implementations of classic dispatching rules for JSSP in `dispatching_rules.py`:
+
+1. **SPT** (Shortest Processing Time): Selects operation with minimum processing time
+2. **LPT** (Longest Processing Time): Selects operation with maximum processing time  
+3. **FIFO** (First In First Out): Selects operation from job with smallest ID
+4. **LIFO** (Last In First Out): Selects operation from job with largest ID
+5. **MWR** (Most Work Remaining): Selects from job with most total remaining work
+6. **LWR** (Least Work Remaining): Selects from job with least total remaining work
+7. **MOPNR** (Most Operations Remaining): Selects from job with most remaining operations
+8. **LOPNR** (Least Operations Remaining): Selects from job with least remaining operations
+9. **RANDOM**: Random selection from available operations
+10. **MTWR** (Modified Total Work Remaining): Considers machine workload balance
+
+### Usage
+
+```python
+from dispatching_rules import DispatchingRules, apply_dispatching_rule
+from JSSP_Env import SJSSP
+
+# Create environment
+env = SJSSP(n_j=10, n_m=10)
+env.reset(instance_data)
+
+# Apply a dispatching rule
+makespan = apply_dispatching_rule(env, 'SPT')
+```
+
+### Evaluation Scripts
+
+- **test_dispatching_rules.py**: Verifies correctness of rule implementations
+- **evaluate_dispatching_rules.py**: Comprehensive evaluation on all datasets
+- **run_dispatching_eval.py**: Wrapper to run evaluation avoiding argparse conflicts
+
+### Performance Comparison: L2D vs Dispatching Rules
+
+The following table compares L2D (learned policy) performance with classic dispatching rules on generated datasets:
+
+```
+Dataset          L2D Mean  Best DR (Rule)    L2D Advantage
+--------------   --------  ---------------   -------------
+Generated_6x6      231.2   571.7 (MOPNR)        59.6%
+Generated_8x8      297.5   756.3 (MOPNR)        60.7%
+Generated_10x10    423.3   974.3 (MWR)          56.5%
+Generated_15x15    633.6   1505.7 (MOPNR)      57.9%
+Generated_20x15    851.4   1717.9 (MOPNR)      50.4%
+Generated_20x20    876.4   1990.2 (MOPNR)      56.0%
+Generated_30x15   1421.2   2250.8 (MOPNR)      36.8%
+Generated_30x20   1323.0   2506.9 (MOPNR)      47.2%
+```
+
+**Key Findings:**
+- L2D significantly outperforms all classic dispatching rules
+- MOPNR and MWR are generally the best-performing dispatching rules
+- L2D's advantage ranges from 36.8% to 60.7% improvement over the best rule
+- The performance gap demonstrates the value of learned policies
+
+### Dispatching Rules Complete Evaluation Results
+
+Full evaluation on all 17 datasets (Generated + Taillard + DMU benchmarks):
+
+```
+========================================================================================================================
+SUMMARY BY RULE (Average across all datasets)
+========================================================================================================================
+Rule      Avg Mean Makespan  Avg Time      Datasets    Rank
+------  -------------------  ----------  ----------    ----
+MWR                  2530.1  1.639s              17    1 (Best)
+MOPNR                2553.3  1.619s              17    2
+RANDOM               2791.8  1.674s              17    3
+LPT                  2999.5  1.561s              17    4
+MTWR                 3029.1  17.275s             17    5
+SPT                  3075.5  1.530s              17    6
+LIFO                 3144.2  1.453s              17    7
+FIFO                 3145.4  1.451s              17    8
+LOPNR                3145.4  1.449s              17    9
+LWR                  3294.7  1.437s              17    10 (Worst)
+```
+
+#### Detailed Results by Dataset Type
+
+**Generated Datasets:**
+```
+Dataset          Best Rule    Mean    2nd Best      Mean    Worst Rule   Mean
+--------------   ----------   ------  ----------    ------  ----------   ------
+Generated_6x6    MOPNR        567.6   MWR           572.1   LWR          749.5
+Generated_8x8    MWR          777.1   MOPNR         778.0   LWR          1025.6
+Generated_10x10  MWR          976.5   MOPNR         980.4   LWR          1326.0
+Generated_15x15  MWR          1496.8  MOPNR         1498.8  LWR          2075.7
+Generated_20x15  MOPNR        1740.4  MWR           1743.0  LWR          2415.1
+Generated_20x20  MWR          1979.1  MOPNR         1986.5  LWR          2758.6
+Generated_30x15  MOPNR        2229.9  MWR           2256.6  LWR          3082.0
+Generated_30x20  MOPNR        2474.0  MWR           2483.6  LWR          3484.6
+```
+
+**Taillard Benchmarks:**
+```
+Dataset          Best Rule    Mean    2nd Best      Mean    Worst Rule   Mean
+--------------   ----------   ------  ----------    ------  ----------   ------
+Taillard_15x15   MOPNR        1551.2  MWR           1560.3  LWR          2106.2
+Taillard_20x15   MWR          1752.4  MOPNR         1784.4  LWR          2387.1
+Taillard_20x20   MOPNR        2069.7  MWR           2079.5  LWR          2805.6
+Taillard_30x15   MOPNR        2312.6  MWR           2347.2  LWR          3084.9
+Taillard_30x20   MWR          2615.0  MOPNR         2619.8  LIFO         3492.7
+```
+
+**DMU Benchmarks:**
+```
+Dataset          Best Rule    Mean    2nd Best      Mean    Worst Rule   Mean
+--------------   ----------   ------  ----------    ------  ----------   ------
+DMU_20x15        MWR          4152.9  MOPNR         4321.5  LWR          5256.7
+DMU_20x20        MWR          4715.7  MOPNR         4719.6  LWR          5960.0
+DMU_30x15        MWR          5506.1  MOPNR         5660.3  LWR          6678.8
+DMU_30x20        MWR          5997.6  MOPNR         6111.0  LWR          7341.1
+```
+
+**Key Insights from Complete Evaluation:**
+- MWR (Most Work Remaining) and MOPNR (Most Operations Remaining) consistently dominate
+- MWR performs slightly better overall (2530.1 vs 2553.3 average)
+- LWR (Least Work Remaining) is consistently the worst performer
+- DMU instances are significantly harder than Taillard instances (2-3x higher makespans)
+- MTWR has high computational cost (17.3s avg) compared to others (~1.5s avg)
+
 ## Dependencies
 
 - PyTorch 1.6.0 with CUDA 10.2
